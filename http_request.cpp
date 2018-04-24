@@ -1,10 +1,14 @@
-#include "http_protocol.h"
+#include "http_request.h"
 #include "utils.h"
 #include <string>
 #include <iostream>
+#include <sys/socket.h>
 using namespace std;
 
-void http_protocol::parseInfo(string line)
+http_request::http_request(int _client):client(_client){
+}
+
+void http_request::parseInfo(string line)
 {
     vector<string> s;
     line = utils::rstrip(line, string(CRLF));
@@ -34,7 +38,7 @@ void http_protocol::parseInfo(string line)
     this->protocol = s[2];
 }
 
-void http_protocol::parseHeader(string line)
+void http_request::parseHeader(string line)
 {
     vector<string> s;
     line = utils::rstrip(line, string(CRLF));
@@ -44,7 +48,7 @@ void http_protocol::parseHeader(string line)
         header[s[0]] = s[1];
     }
 }
-void http_protocol::parseArgs(string args)
+void http_request::parseArgs(string args)
 {
     vector<string> paramsVec;
     utils::split(args, string("&"), paramsVec);
@@ -60,18 +64,31 @@ void http_protocol::parseArgs(string args)
         }
     }
 }
-void http_protocol::parseBody(string _body)
+void http_request::parseBody()
 {
-    this->body = _body;
-    map<string, string>::iterator iter = header.find(HEADER_CONTENT_TYPE);
-    if (iter == header.end())
+    cout << "request body" << endl;
+    map<string, string>::iterator iter = header.find(HEADER_CONTENT_LENGTH);
+    if (iter != header.end())
     {
-        return;
-    }
-    string contentType = iter->second;
-    if (contentType.compare(CONTENT_TYPE_FORM) == 0)
-    {
-        parseArgs(body);
+        cout << "find" << iter->second << endl;
+        int contentLength = atoi(iter->second.c_str());
+        if (contentLength < MAX_CONTENT_LENGTH)
+        {
+            char * buf = new char[contentLength];
+            recv(client, buf, contentLength, 0);
+            map<string, string>::iterator iter2 = header.find(HEADER_CONTENT_TYPE);
+            if (iter2 == header.end())
+            {
+                return;
+            }
+            string contentType = iter2->second;
+            if (contentType.compare(CONTENT_TYPE_FORM) == 0)
+            {
+                parseArgs(body);
+            }
+            delete [] buf;
+            cout << body << endl;
+        }
     }
 }
 

@@ -1,5 +1,4 @@
 #include "myhttpd.h"
-#include "http_protocol.h"
 #include <iostream>
 #include <unistd.h>
 #include <pthread.h>
@@ -9,7 +8,10 @@
 #include <cstring>
 #include <sys/stat.h>
 #include <cstdio>
-#include <dirent.h>
+
+#include "http_request.h"
+#include "http_response.h"
+
 using namespace std;
 
 MyHttpd::MyHttpd(u_short _port, string _htdoc):
@@ -77,14 +79,14 @@ void * MyHttpd::handle(void *p)
     string line;
     // 请求行、消息报头、请求正文
 
+    http_request hp(client);
+    http_response res(client);
     // 请求行
     // method path protocol
     // GET /favicon.ico HTTP/1.1\r\n
     line = MyHttpd::recv_line(client);
-    http_protocol hp;
     cout << "REQUEST:" << line << endl;
-    if (line.empty())
-    {
+    if (line.empty()){
         return NULL;
     }
     hp.parseInfo(line);
@@ -92,12 +94,10 @@ void * MyHttpd::handle(void *p)
 
     // 消息报头
     bool end = false;
-    while (!end)
-    {
+    while (!end){
         line = MyHttpd::recv_line(client);
         hp.parseHeader(line);
-        if (line.compare(CRLF) == 0)
-        {
+        if (line.compare(CRLF) == 0){
             end = true;
         }
     }
@@ -109,87 +109,37 @@ void * MyHttpd::handle(void *p)
     {
         cout << i->first << ":" << i->second << endl;
     }
-    // 请求正文
-    if (hp.method.compare("POST") == 0)
-    {
-        cout << "request body" << endl;
-        map<string, string>::iterator iter = hp.header.find(HEADER_CONTENT_LENGTH);
-        if (iter != hp.header.end())
-        {
-            cout << "find" << iter->second << endl;
-            int contentLength = atoi(iter->second.c_str());
-            if (contentLength < MAX_CONTENT_LENGTH)
-            {
-                char * buf = new char[contentLength];
-                recv(client, buf, contentLength, 0);
-                hp.parseBody(string(buf));
-                delete [] buf;
-                cout << hp.body << endl;
-            }
-        }
+    if (hp.method.compare("POST") == 0){
+        hp.parseBody();
     }
 
     for (map<string, string>::iterator i = hp.params.begin();
             i != hp.params.end();
-            i++)
-    {
+            i++){
         cout << i->first << ":" << i->second << endl;
     }
 
-    //response
-    send_line(client, string("HTTP/1.0 200 OK\r\n"));
-    send_line(client, string("Server: myhttpd/1.0.0\r\n"));
-    send_line(client, string("Content-Type: text/html\r\n"));
-    send_line(client, string("\r\n"));
-
-    string rf = "htdoc/";
-    if (hp.file == "/")
-    {
-        rf += "index.html";
-    }
-    else
-    {
-        rf += hp.file;
-    }
-    struct stat st;
-    cout << "stat:" << rf << endl;
-
-    if (hp.file.compare(string("/list")) == 0)
-    {
-        DIR *dir;
-        struct dirent *ent;
-        cout << "list files" << endl;
-        if ((dir = opendir ("htdoc/")) != NULL)
-        {
-            /* print all the files and directories within directory */
-            while ((ent = readdir (dir)) != NULL)
-            {
-                printf ("%s\n", ent->d_name);
-                send_line(client, string(ent->d_name) + "<br/>\r\n");
-            }
-            closedir (dir);
+    if (hp.file.compare(string("/list")) == 0){
+        res.ok().send_header();
+        res.list("htdoc/");
+    }else{
+        string rf = "htdoc/";
+        if (hp.file == "/"){
+            rf += "index.html";
+        }else{
+            rf += hp.file;
         }
-        else
-        {
-
+        struct stat st;
+        if (stat(rf.c_str(), &st) == -1){
+            res.not_found().send_header();
+            res.body(string(rf)+" not found");
+            cout << rf << " not found" << endl;
+        }else{
+            res.ok().send_header();
+            FILE * resource = fopen(rf.c_str(), "r");
+            res.static_file(resource);
+            fclose(resource);
         }
-    }
-    else if (stat(rf.c_str(), &st) == -1)
-    {
-        cout << rf << " not found" << endl;
-        //not found
-    }
-    else
-    {
-        FILE * resource = fopen(rf.c_str(), "r");
-        char buf[1024];
-        fgets(buf, sizeof(buf), resource);
-        while (!feof(resource))
-        {
-            send(client, buf, strlen(buf), 0);
-            fgets(buf, sizeof(buf), resource);
-        }
-        fclose(resource);
     }
 
     cout << "close client" << client << endl;
@@ -200,8 +150,7 @@ void * MyHttpd::handle(void *p)
 
 void MyHttpd::start()
 {
-    if (listen(server_socket, 5) < 0)
-    {
+    if (listen(server_socket, 5) < 0){
         throw runtime_error("listen fail");
     }
     cout << "listen port " << port << endl;
@@ -212,18 +161,15 @@ void MyHttpd::start()
     pthread_t newthread;
 
     //loop
-    while (1)
-    {
+    while (1){
         cout << "wait" << endl;
         client_sock = accept(server_socket,
-                             (struct sockaddr *)&client_name,
-                             &client_name_len);
-        if (client_sock == -1)
-        {
+                (struct sockaddr *)&client_name,
+                &client_name_len);
+        if (client_sock == -1){
             cerr << "accept fail" << endl;
         }
-        if (pthread_create(&newthread, NULL, MyHttpd::handle, (void *)(intptr_t)client_sock) != 0)
-        {
+        if (pthread_create(&newthread, NULL, MyHttpd::handle, (void *)(intptr_t)client_sock) != 0){
             perror("pthread_create");
         }
     }
