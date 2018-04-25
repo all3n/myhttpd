@@ -1,5 +1,6 @@
 SRCS = $(wildcard *.cpp)
 
+APP=myhttpd
 
 OBJS = $(SRCS:.cpp=.o)
 
@@ -11,7 +12,7 @@ LIBS = -lpthread
 
 CCFLAGS = -g  -Wall -O0
 
-OUTPUT = main
+OUTPUT = $(APP)
 
 all:$(OUTPUT)
 
@@ -22,7 +23,7 @@ $(OUTPUT) : $(OBJS)
 	$(CPP) -c $< $(CCFLAGS)
 
 clean:
-	rm -rf main *.o
+	rm -rf $(APP) *.o
 
 debug:
 	@echo $(SRCS)

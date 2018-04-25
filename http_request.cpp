@@ -1,15 +1,42 @@
 #include "http_request.h"
 #include "utils.h"
 #include <string>
+#include <cstdlib>
 #include <iostream>
 #include <sys/socket.h>
+#include <sstream>
+
+#define MAX_HEADER_SIZE 100
 using namespace std;
 
-http_request::http_request(int _client):client(_client){
+http_request::http_request(int _client): client(_client)
+{
 }
 
-void http_request::parseInfo(string line)
+string http_request::recv_line(const char &end = '\n')
 {
+    ostringstream ostr;
+    char c = 0;
+    ssize_t t = -1;
+    while (c != end && t != 0)
+    {
+        t = recv(client, &c, 1, 0);
+        ostr << c;
+    }
+    return ostr.str();
+}
+
+
+void http_request::parseInfo()
+{
+    // 请求行
+    // method path protocol
+    // GET /favicon.ico HTTP/1.1\r\n
+    string line = recv_line();
+    if (line.empty())
+    {
+        return;
+    }
     vector<string> s;
     line = utils::rstrip(line, string(CRLF));
     utils::split(line, string(" "), s);
@@ -22,8 +49,9 @@ void http_request::parseInfo(string line)
         if (url.length() > queryCharExist)
         {
             int start = queryCharExist + 1;
-            string paramsQuery = url.substr(start, url.length() - start);
-            cout << "paramQuery:" << paramsQuery << endl;
+            int size = url.length() - start;
+            cout << "url substr:" << start << ":" << size << endl;
+            string paramsQuery = url.substr(start, size);
             parseArgs(paramsQuery);
         }
     }
@@ -31,28 +59,40 @@ void http_request::parseInfo(string line)
     {
         this->file = url;
     }
-    cout << "file:" << file << endl;
-
-
-
     this->protocol = s[2];
 }
 
-void http_request::parseHeader(string line)
+void http_request::parseHeader()
 {
-    vector<string> s;
-    line = utils::rstrip(line, string(CRLF));
-    utils::split(line, string(HEADER_SEP), s);
-    if (s.size() == 2)
+    string line;
+    int i = 0;
+    while (true)
     {
-        header[s[0]] = s[1];
+        vector<string> s;
+        line = recv_line();
+        //cout << i << " size:" << line.size() << ":" << line << endl;
+        if (is_crlf(line))
+        {
+            break;
+        }
+        if (i++ > MAX_HEADER_SIZE)
+        {
+            cerr << "header parse " << MAX_HEADER_SIZE << endl;
+            break;
+        }
+        line = utils::rstrip(line, string(CRLF));
+        utils::split(line, string(HEADER_SEP), s);
+        if (s.size() == 2)
+        {
+            header[s[0]] = s[1];
+        }
     }
 }
 void http_request::parseArgs(string args)
 {
     vector<string> paramsVec;
     utils::split(args, string("&"), paramsVec);
-    for (vector<string>::const_iterator i = paramsVec.cbegin();
+    for (vector<string>::iterator i = paramsVec.begin();
             i < paramsVec.end();
             i++ )
     {
@@ -66,7 +106,6 @@ void http_request::parseArgs(string args)
 }
 void http_request::parseBody()
 {
-    cout << "request body" << endl;
     map<string, string>::iterator iter = header.find(HEADER_CONTENT_LENGTH);
     if (iter != header.end())
     {
@@ -92,3 +131,29 @@ void http_request::parseBody()
     }
 }
 
+void  http_request::printHeader()
+{
+    cout << "headers:" << endl;
+    for (map<string, string>::iterator i = header.begin();
+            i != header.end();
+            i++)
+    {
+        cout << i->first << ":" << i->second << endl;
+    }
+}
+
+void http_request::debug()
+{
+    cout << "METHOD:" << method << endl;
+    cout << "FILE:" << file << endl;
+    cout << "PROTOCOL:" << protocol << endl;
+
+    printHeader();
+    // print args
+    for (map<string, string>::iterator i = params.begin();
+            i != params.end();
+            i++)
+    {
+        cout << i->first << ":" << i->second << endl;
+    }
+}

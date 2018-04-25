@@ -4,6 +4,7 @@
 ### C++ ###
 # Prerequisites
 main
+myhttpd
 *.d
 
 # Compiled Object files

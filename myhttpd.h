@@ -3,21 +3,26 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string>
+#include "http_request.h"
+#include "http_response.h"
 
-class MyHttpd{
-    private:
-        u_short port;
-        u_int32_t addr;
-        int server_socket;
-        std::string htdoc;
-    public:
-        MyHttpd(u_short _port,std::string htdoc);
-        ~MyHttpd();
-        void init();
-        void start();
-        static void * handle(void *);
-        static std::string recv_line(int socket,char end);
-        static void send_line(int socket,std::string line);
+class myhttpd
+{
+private:
+    u_short port;
+    u_int32_t addr;
+    int server_socket;
+    std::string htdoc;
+public:
+    myhttpd(u_short _port, std::string htdoc);
+    ~myhttpd();
+    void init();
+    void start();
+    void handle(int client, http_request & req, http_response & res);
+    std::string recv_line(int socket, char end);
+    void send_line(int socket, std::string line);
+
+    static void * handle_request(void * args);
 };
 
 #endif

@@ -21,6 +21,7 @@
 #define MAX_CONTENT_LENGTH 4096000
 
 
+// https://zh.wikipedia.org/wiki/HTTP%E7%8A%B6%E6%80%81%E7%A0%81
 
 #define STATUS_CODE_OK 200
 #define STATUS_CODE_OK_STR "OK"
@@ -32,7 +33,8 @@
 #define STATUS_CODE_NOT_IMPLEMENTED 501
 #define STATUS_CODE_NOT_IMPLEMENTED_STR "Method Not Implemented"
 
-
+#define STATUS_CODE_INTERNAL_SERVER_ERROR 500
+#define STATUS_CODE_INTERNAL_SERVER_ERROR_STR "Internal Server Error"
 
 
 #endif /* !HTTP_CONSTANTS_H */
