@@ -8,6 +8,7 @@
 #include <cstring>
 #include <sys/stat.h>
 #include <cstdio>
+#include <stdexcept>
 
 #include "http_request.h"
 #include "http_response.h"

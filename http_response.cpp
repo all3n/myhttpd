@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <dirent.h>
 #include <cstring>
+#include <cstdio>
 using namespace std;
 
 http_response::http_response(int _client): client(_client)
@@ -47,7 +48,8 @@ http_response & http_response::status(int statusCode, string statusStr)
 
 http_response & http_response::static_file(FILE * resource)
 {
-    if(resource == NULL){
+    if (resource == NULL)
+    {
         return *this;
     }
     char buf[1024];
