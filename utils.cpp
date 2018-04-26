@@ -21,22 +21,21 @@ void utils::split(const string & line, string tok, vector<string> &info)
 }
 
 
-string & utils::rstrip(string & line, string tok)
+void utils::rstrip(string & line, string tok)
 {
     if (line.empty())
     {
-        return line;
+        return;
     }
     size_t start = line.length() - tok.length();
     if (start > line.size())
     {
         cerr << "|" << line << "|start:" << start << "|" << "size:" << line.size() << endl;
-        return line;
+        return;
     }
     string endstr = line.substr(start, tok.length());
     if (endstr.compare(tok) == 0)
     {
         line = line.substr(0, start);
     }
-    return line;
 }

@@ -5,10 +5,11 @@
 #include <vector>
 using namespace std;
 
-class utils{
-    public:
-        static void split(const string &line,string tok,vector<string> &out);
-        static string & rstrip(string &line,string tok);
+class utils
+{
+public:
+    static void split(const string &line, string tok, vector<string> &out);
+    static void rstrip(string &line, string tok);
 
 
 };

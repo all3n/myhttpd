@@ -23,7 +23,7 @@ public:
     {
         return line.compare(CRLF) == 0;
     }
-    string recv_line(const char & end);
+    void recv_line(string &line, const char & end);
     void parseInfo();
     void parseHeader();
     void parseBody();

@@ -13,7 +13,7 @@ http_request::http_request(int _client): client(_client)
 {
 }
 
-string http_request::recv_line(const char &end = '\n')
+void http_request::recv_line(string &line, const char &end = '\n')
 {
     ostringstream ostr;
     char c = 0;
@@ -22,12 +22,13 @@ string http_request::recv_line(const char &end = '\n')
     {
         t = recv(client, &c, 1, 0);
         //no data
-        if(t == 0 ){
+        if (t == 0 )
+        {
             break;
         }
         ostr << c;
     }
-    return ostr.str();
+    line = ostr.str();
 }
 
 
@@ -36,15 +37,14 @@ void http_request::parseInfo()
     // 请求行
     // method path protocol
     // GET /favicon.ico HTTP/1.1\r\n
-    string line = recv_line();
+    string line;
+    recv_line(line);
     if (line.empty())
     {
         return;
     }
     vector<string> s;
-
-    cout<<"info:"<<line<<" size:"<<line.size()<<endl;
-    line = utils::rstrip(line, string(CRLF));
+    utils::rstrip(line, string(CRLF));
     utils::split(line, string(" "), s);
     this->method = s[0];
     this->url = s[1];
@@ -75,10 +75,9 @@ void http_request::parseHeader()
     while (true)
     {
         vector<string> s;
-        line = recv_line();
+        recv_line(line);
         if (is_crlf(line))
         {
-            cout<<i<<"header "<<"CRLF"<<endl;
             break;
         }
         if (i++ > MAX_HEADER_SIZE)
@@ -86,8 +85,7 @@ void http_request::parseHeader()
             cerr << "header parse " << MAX_HEADER_SIZE << endl;
             break;
         }
-        line = utils::rstrip(line, string(CRLF));
-        cout << i << "header size:" << line.size() << ":" << line << endl;
+        utils::rstrip(line, string(CRLF));
         utils::split(line, string(HEADER_SEP), s);
         if (s.size() == 2)
         {

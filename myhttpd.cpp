@@ -54,11 +54,6 @@ void myhttpd::init()
     }
 }
 
-void myhttpd::send_line(int client, string line)
-{
-    send(client, line.c_str(), line.length(), 0);
-}
-
 void myhttpd::handle(int client, http_request & req, http_response & res)
 {
     // 请求行、消息报头、请求正文
@@ -78,15 +73,14 @@ void myhttpd::handle(int client, http_request & req, http_response & res)
     else
     {
         string rf = htdoc;
-        if (req.file == "/")
+        if (req.file.at(req.file.size() - 1) == '/')
         {
-            rf += "/index.html";
+            rf += "index.html";
         }
         else
         {
             rf += req.file;
         }
-        cout<<"file:"<<rf<<endl;
         struct stat st;
         if (stat(rf.c_str(), &st) == -1)
         {
@@ -96,10 +90,25 @@ void myhttpd::handle(int client, http_request & req, http_response & res)
         }
         else
         {
-            res.ok().send_header();
-            FILE * resource = fopen(rf.c_str(), "r");
-            res.static_file(resource);
-            fclose(resource);
+            if ((st.st_mode & S_IFMT) == S_IFDIR)
+            {
+                rf += "/index.html";
+            }
+            bool cgi = false;
+            if ((st.st_mode & S_IXUSR) ||
+                    (st.st_mode & S_IXGRP) ||
+                    (st.st_mode & S_IXOTH)    )
+            {
+                cgi = true;
+                res.ok().send_header();
+            }
+            else
+            {
+                res.ok().send_header();
+                FILE * resource = fopen(rf.c_str(), "r");
+                res.static_file(resource);
+                fclose(resource);
+            }
         }
     }
     close(client);
