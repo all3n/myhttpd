@@ -18,9 +18,13 @@ string http_request::recv_line(const char &end = '\n')
     ostringstream ostr;
     char c = 0;
     ssize_t t = -1;
-    while (c != end && t != 0)
+    while (c != end)
     {
         t = recv(client, &c, 1, 0);
+        //no data
+        if(t == 0 ){
+            break;
+        }
         ostr << c;
     }
     return ostr.str();
@@ -38,6 +42,8 @@ void http_request::parseInfo()
         return;
     }
     vector<string> s;
+
+    cout<<"info:"<<line<<" size:"<<line.size()<<endl;
     line = utils::rstrip(line, string(CRLF));
     utils::split(line, string(" "), s);
     this->method = s[0];
@@ -70,9 +76,9 @@ void http_request::parseHeader()
     {
         vector<string> s;
         line = recv_line();
-        //cout << i << " size:" << line.size() << ":" << line << endl;
         if (is_crlf(line))
         {
+            cout<<i<<"header "<<"CRLF"<<endl;
             break;
         }
         if (i++ > MAX_HEADER_SIZE)
@@ -81,6 +87,7 @@ void http_request::parseHeader()
             break;
         }
         line = utils::rstrip(line, string(CRLF));
+        cout << i << "header size:" << line.size() << ":" << line << endl;
         utils::split(line, string(HEADER_SEP), s);
         if (s.size() == 2)
         {

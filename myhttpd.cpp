@@ -77,20 +77,21 @@ void myhttpd::handle(int client, http_request & req, http_response & res)
     }
     else
     {
-        string rf = "htdoc/";
+        string rf = htdoc;
         if (req.file == "/")
         {
-            rf += "index.html";
+            rf += "/index.html";
         }
         else
         {
             rf += req.file;
         }
+        cout<<"file:"<<rf<<endl;
         struct stat st;
         if (stat(rf.c_str(), &st) == -1)
         {
             res.not_found().send_header();
-            res.body(string(rf) + " not found");
+            res.body(req.file + " not found");
             cout << rf << " not found" << endl;
         }
         else

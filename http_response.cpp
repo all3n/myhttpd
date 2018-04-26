@@ -47,6 +47,9 @@ http_response & http_response::status(int statusCode, string statusStr)
 
 http_response & http_response::static_file(FILE * resource)
 {
+    if(resource == NULL){
+        return *this;
+    }
     char buf[1024];
     fgets(buf, sizeof(buf), resource);
     while (!feof(resource))
@@ -61,6 +64,8 @@ http_response & http_response::static_file(FILE * resource)
 
 http_response & http_response::send_header()
 {
+    out.clear();
+    out.str("");
     out << "HTTP/1.0 " << statusCode << " " << statusStr << CRLF;
     out << "Server: " << SERVER_NAME << "/" << VERSION << CRLF;
     out << "Content-Type: text/html" << CRLF;
@@ -72,6 +77,8 @@ http_response & http_response::send_header()
 }
 http_response & http_response::body(const string &s)
 {
+    out.clear();
+    out.str("");
     out << s << CRLF;
     const string cs = out.str();
     send(client, cs.c_str(), cs.length(), 0);
